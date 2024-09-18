@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"/>
     <title>Chat Rooms</title>
 </head>
 <body>
-    What chat room would you like to enter?<br>
-    <input id="room-name-input" type="text" size="100"><br>
-    <input id="room-name-submit" type="button" value="Enter">
-
-    <script>
-        document.querySelector('#room-name-input').focus();
-        document.querySelector('#room-name-input').onkeyup = function(e) {
-            if (e.key === 'Enter') {  // enter, return
-                document.querySelector('#room-name-submit').click();
-            }
-        };
-
-        document.querySelector('#room-name-submit').onclick = function(e) {
-            var roomName = document.querySelector('#room-name-input').value;
-            window.location.pathname = '/chat/' + roomName + '/';
-        };
-    </script>
+    <!--Authentication-->
+    {% if user.is_authenticated %}
+    <p>Hello, {{ user.username }}!</p>
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+    
+    <h1>Select Users to Chat With</h1>
+    <form method="POST" action="{% url 'select_user' %}">
+        {% csrf_token %}
+        {% for user in users %}
+            <div>
+                <input type="checkbox" name="user_ids" value="{{ user.id }}">
+                <label>{{ user.username }}</label>
+            </div>
+        {% empty %}
+            <p>No users available</p>
+        {% endfor %}
+        <button type="submit">Start Chat</button>
+    </form>
+    
+    {% else %}
+    <p>You are not logged in.</p>
+    <a href="{% url 'login' %}">Login</a>
+    {% endif %}
 </body>
 </html>
