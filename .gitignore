@@ -1,5 +1,6 @@
 # Ignore Python bytecode and cache
 __pycache__/
+*.__pycache__/
 *.pyc
 *.pyo
 
@@ -9,6 +10,7 @@ env/
 *.venv/
 
 # Ignore Django migrations
+*/migrations/
 **/migrations/
 
 # Ignore system files
@@ -17,3 +19,5 @@ env/
 
 # Ignore database files
 *.sqlite3
+
+
