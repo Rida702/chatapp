@@ -15,11 +15,11 @@ from channels.auth import AuthMiddlewareStack
 from django.urls import path
 from chat import consumers
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chatapp.settings')
+django_asgi_app = get_asgi_application()
 
-#application = get_asgi_application()
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chatapp.settings")
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
             [
@@ -28,3 +28,4 @@ application = ProtocolTypeRouter({
         )
     ),
 })
+
