@@ -7,13 +7,22 @@
     <!--Authentication-->
     {% if user.is_authenticated %}
     <p>Hello, {{ user.username }}!</p>
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
     <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button type="submit">Logout</button>
     </form>
-    
-    <h1>Select Users to Chat With</h1>
+    <h1>Welcome to the Chat Application</h1>
+
+    <h2>Select Users to Chat With (1-1)</h2>
     <form method="POST" action="{% url 'select_user' %}">
+        <input type="hidden" name="chat_type" value="1to1_chat">
         {% csrf_token %}
         {% for user in users %}
             <div>
@@ -25,10 +34,21 @@
         {% endfor %}
         <button type="submit">Start Chat</button>
     </form>
-    
+
+    <h2>Create a Group Chat</h2>
+    <form method="POST" action="{% url 'select_user' %}">
+        <input type="hidden" name="chat_type" value="group_chat">
+        {% csrf_token %}
+        <label for="group-name">Group Name:</label>
+        <input id="group-name" name="group_name" type="text" required>
+        <button type="submit">Create Chat</button>
+    </form>
+
     {% else %}
     <p>You are not logged in.</p>
     <a href="{% url 'login' %}">Login</a>
     {% endif %}
+    <br><br>
+
 </body>
 </html>

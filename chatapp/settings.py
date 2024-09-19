@@ -81,7 +81,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-LOGIN_REDIRECT_URL = '/home/'  
+LOGIN_REDIRECT_URL = '/index/'  #Redirect url after login
 LOGOUT_REDIRECT_URL = '/'  
 
 

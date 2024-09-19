@@ -20,7 +20,7 @@ from chat import views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path('home/', views.index, name='home'),
+    path('index/', views.index, name='index'),
     path('admin/', admin.site.urls),
     path('chat/', include('chat.urls')),
     path('', auth_views.LoginView.as_view(), name='login'),
