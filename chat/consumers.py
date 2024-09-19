@@ -1,40 +1,69 @@
 import json
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth import get_user_model
+from chat.models import Chat, Room
 
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
-
-
-class ChatConsumer(WebsocketConsumer):
-    def connect(self):
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{self.room_name}"
 
         # Join room group
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name, self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
-        self.accept()
+        # Accept the WebSocket connection
+        await self.accept()
 
-    def disconnect(self, close_code):
+        # Fetch and send past messages
+        past_messages = await self.get_past_messages()
+        await self.send(text_data=json.dumps({
+            'past_messages': past_messages
+        }))
+
+    async def disconnect(self, close_code):
         # Leave room group
-        async_to_sync(self.channel_layer.group_discard)(
-            self.room_group_name, self.channel_name
-        )
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-    # Receive message from WebSocket
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message = data['message']
+        sender_username = data['senderUsername']
+
+        # Save message in the database
+        await self.save_message(sender_username, message)
 
         # Send message to room group
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, {"type": "chat.message", "message": message}
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message,
+                'senderUsername': sender_username,
+            }
         )
 
-    # Receive message from room group
-    def chat_message(self, event):
-        message = event["message"]
+    async def chat_message(self, event):
+        message = event['message']
+        username = event['senderUsername']
 
         # Send message to WebSocket
-        self.send(text_data=json.dumps({"message": message}))
+        await self.send(text_data=json.dumps({
+            'message': message,
+            'senderUsername': username,
+        }))
+
+    @database_sync_to_async
+    def save_message(self, username, message):
+        sender = get_user_model().objects.get(username=username)
+        room = Room.objects.get(name=self.room_name)
+        
+        # Save the message
+        Chat.objects.create(room=room, sender=sender, message=message)
+
+    @database_sync_to_async
+    def get_past_messages(self):
+        room = Room.objects.get(name=self.room_name)
+        # Get all messages for the room ordered by timestamp
+        chats = Chat.objects.filter(room=room).order_by('timestamp')
+        return [{'senderUsername': chat.sender.username, 'message': chat.message, 'timestamp': chat.timestamp.strftime('%Y-%m-%d %H:%M:%S')} for chat in chats]

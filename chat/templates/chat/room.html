@@ -1,49 +1,96 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"/>
     <title>Chat Room</title>
 </head>
 <body>
-    <textarea id="chat-log" cols="100" rows="20"></textarea><br>
-    <input id="chat-message-input" type="text" size="100"><br>
-    <input id="chat-message-submit" type="button" value="Send">
-    {{ room_name|json_script:"room-name" }}
+    <h1 id="chat-header">{{ user.username  }}'s Inbox</h1>
+    <h1 id="chat-header">{{ room_name }}</h1>
+
+    <div id="chat-log" style="border:1px solid black; height:300px; overflow-y:scroll;">
+    </div>
+    
+    <input id="chat-message-input" type="text" size="100" placeholder="Type a message">
+    <button id="chat-message-send">Send</button>
+
     <script>
-        const roomName = JSON.parse(document.getElementById('room-name').textContent);
-
-        const chatSocket = new WebSocket(
-            'ws://'
-            + window.location.host
-            + '/ws/chat/'
-            + roomName
-            + '/'
-        );
-
+        const username = "{{ user.username }}";  // Current user's username
+        const room_id = "{{ room_name }}"; 
+        const ws_url = `ws://${window.location.host}/ws/chat/${room_id}/`;  // WebSocket URL for the room
+    
+        const chatSocket = new WebSocket(ws_url);
+    
+        // When the WebSocket connection is established
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket connection established.');
+        };
+    
+        // When a new message or past messages are received
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += (data.message + '\n');
+    
+            const chatLog = document.getElementById('chat-log');
+    
+            if (data.past_messages) {
+                const pastMessages = data.past_messages;
+    
+                // Append each past message to the chat log
+                pastMessages.forEach(msg => {
+                    const msgColor = msg.senderUsername === username ? 'blue' : 'black';  // Different color for current user
+                    const msgAlign = msg.senderUsername === username ? 'right' : 'left';   // Align messages accordingly
+    
+                    chatLog.innerHTML += `
+                        <p style="color:${msgColor}; text-align:${msgAlign};">
+                            <strong>${msg.senderUsername}:</strong> ${msg.message} 
+                            <small>(${msg.timestamp})</small>
+                        </p>`;
+                });
+    
+                chatLog.scrollTop = chatLog.scrollHeight;  // Scroll to the latest message
+            } else {
+                // Handle incoming new message
+                const message = data.message;
+                const senderUsername = data.senderUsername;
+    
+                // Set the color and alignment based on the sender
+                const msgColor = senderUsername === username ? 'blue' : 'black';  // Current user's messages in blue
+                const msgAlign = senderUsername === username ? 'right' : 'left';   // Align current user's messages to the right
+    
+                // Append the new message to the chat log
+                chatLog.innerHTML += `
+                    <p style="color:${msgColor}; text-align:${msgAlign};">
+                        <strong>${senderUsername}:</strong> ${message}
+                    </p>`;
+                chatLog.scrollTop = chatLog.scrollHeight;  // Scroll to the latest message
+            }
         };
-
+    
+        // If the WebSocket closes unexpectedly
         chatSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
         };
-
-        document.querySelector('#chat-message-input').focus();
-        document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.key === 'Enter') {  // enter, return
-                document.querySelector('#chat-message-submit').click();
+    
+        // Handle message sending when the send button is clicked
+        document.getElementById('chat-message-send').onclick = function() {
+            const messageInput = document.getElementById('chat-message-input');
+            const message = messageInput.value;
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'senderUsername': username  // Send the username along with the message
+                }));
+                messageInput.value = '';  // Clear the input field after sending
             }
         };
-
-        document.querySelector('#chat-message-submit').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
-            chatSocket.send(JSON.stringify({
-                'message': message
-            }));
-            messageInputDom.value = '';
+    
+        // Allow pressing Enter to send the message
+        document.getElementById('chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // Enter key pressed
+                document.getElementById('chat-message-send').click();
+            }
         };
     </script>
+    
+    
 </body>
 </html>
