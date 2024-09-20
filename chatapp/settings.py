@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-5_@ap(gswrj(5(4b52^y76y=@h=*^#i!d+e9a*fc8_dkdt-k-d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'daphne',
     'channels',
     'chat',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -81,8 +82,11 @@ CHANNEL_LAYERS = {
     },
 }
 
-LOGIN_REDIRECT_URL = '/index/'  #Redirect url after login
-LOGOUT_REDIRECT_URL = '/'  
+#LOGIN_REDIRECT_URL = '/index/'  #Redirect url after login
+#LOGOUT_REDIRECT_URL = '/'  
+
+# Disable CSRF for WebSocket connections
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000']
 
 
 # Database
