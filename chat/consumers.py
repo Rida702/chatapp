@@ -11,6 +11,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif 'group_name' in self.scope["url_route"]["kwargs"]:
             self.room_name = self.scope["url_route"]["kwargs"]["group_name"]
     
+        self.room_group_name = f'chat_{self.room_name}'
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
