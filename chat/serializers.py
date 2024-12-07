@@ -1,30 +1,20 @@
-from django.core.serializers.json import Serializer
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import Room, Chat
 
-# FYI: It can be any of the following as well:
-# from django.core.serializers.pyyaml import Serializer
-# from django.core.serializers.python import Serializer
-# from django.core.serializers.json import Serializer
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
 
-JSON_ALLOWED_OBJECTS = (dict, list, tuple, str, int, bool)
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ['id', 'name']
 
-
-class CustomSerializer(Serializer):
-    def end_object(self, obj):
-        for field in self.selected_fields:
-            if field == 'pk':
-                continue
-            elif field in self._current.keys():
-                continue
-            else:
-                try:
-                    if '__' in field:
-                        fields = field.split('__')
-                        value = obj
-                        for f in fields:
-                            value = getattr(value, f)
-                        if value != obj and isinstance(value, JSON_ALLOWED_OBJECTS) or value == None:
-                            self._current[field] = value
-
-                except AttributeError:
-                    pass
-        super(CustomSerializer, self).end_object(obj)
+class ChatSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Chat
+        fields = ['id', 'room', 'sender', 'message', 'timestamp']

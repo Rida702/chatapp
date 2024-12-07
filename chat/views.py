@@ -1,9 +1,49 @@
+from django.contrib.auth.models import User
+from chat.models import Room, Chat
+from rest_framework import status, generics
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from .serializers import RoomSerializer
+
+    
+class RoomListCreateView(generics.ListCreateAPIView):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        chat_type = request.data.get('chat_type')
+        #user that is making the request
+        request_user_id = request.data.get('user_1')
+        #user user_1 wants to chat with
+        selected_user_id = request.data.get('user_2')
+        room_name = None
+        
+        if chat_type == '1to1_chat':
+            user_ids = sorted([request_user_id, selected_user_id])
+            room_name = f"{user_ids[0]}_{user_ids[1]}_chat"
+        
+        elif chat_type == 'group_chat':
+            group_name = request.data.get('group_name').strip()
+            if group_name:
+                room_name = group_name
+            else:
+                return Response({"error": "Please enter a group name."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        if room_name:
+            room, created = Room.objects.get_or_create(name=room_name)
+            serializer = RoomSerializer(room)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"error": "Unable to create room."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+"""
+--Simple Views
 from django.shortcuts import render , redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from .models import Room, Chat
-from django.contrib.auth.models import User
 from django.contrib import messages
 
 def signup(request):
@@ -27,12 +67,6 @@ def room(request, room_name):
     return render(request, "chat/room.html", {
         "room_name": room_name,
     })
-
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from chat.models import Room
 
 @login_required
 def select_user(request):
@@ -67,17 +101,4 @@ def select_user(request):
 
     users = User.objects.exclude(id=request.user.id)
     return render(request, 'chat/index.html', {'users': users})
-
-"""
-@login_required
-def create_group(request):
-    if request.method == 'POST':
-        group_name = request.POST.get('group_name').strip()  
-
-        if group_name:
-            room, created = Room.objects.get_or_create(name=group_name)
-
-            return redirect('room', room_name=room.name)  
-
-    return render(request, 'chat/index.html')
 """
